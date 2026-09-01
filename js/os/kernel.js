@@ -241,6 +241,17 @@
     { id: 'cyber-puzzle', name: 'Cyber Puzzle', icon: ICONS.puzzle, category: 'games', pinned: false, singleton: true, description: 'Sudoku, Nonogram, Minesweeper, 2048, Word Search' },
     { id: 'snake', name: 'Neon Snake', icon: ICONS.zap, category: 'games', pinned: false, singleton: true, description: 'Classic snake with gradient glow and power-ups' },
     { id: 'tetris', name: 'Neon Tetris', icon: ICONS.grid, category: 'games', pinned: false, singleton: true, description: 'Full SRS rotation with ghost piece and marathon mode' },
+    { id: 'chess', name: 'Chess', icon: ICONS.grid, category: 'games', pinned: false, singleton: true, description: 'Full chess with minimax AI opponent (depth 3)' },
+    { id: 'wordle', name: 'Wordle', icon: ICONS.text, category: 'games', pinned: false, singleton: true, description: '5-letter word guessing with 6 attempts and keyboard' },
+    { id: 'hangman', name: 'Hangman', icon: ICONS.text, category: 'games', pinned: false, singleton: true, description: 'Classic hangman with word categories' },
+    { id: 'trivia', name: 'Trivia', icon: ICONS.book, category: 'games', pinned: false, singleton: true, description: '100+ question quiz with categories and scoring' },
+    { id: 'tic-tac-toe', name: 'Tic-Tac-Toe', icon: ICONS.grid, category: 'games', pinned: false, singleton: true, description: 'Classic game vs unbeatable minimax AI' },
+    { id: 'connect-four', name: 'Connect Four', icon: ICONS.grid, category: 'games', pinned: false, singleton: true, description: 'Drop discs with gravity physics vs AI opponent' },
+    { id: 'battleship', name: 'Battleship', icon: ICONS.grid, category: 'games', pinned: false, singleton: true, description: 'Ship placement and guessing game vs AI' },
+    { id: 'blackjack', name: 'Blackjack', icon: ICONS.grid, category: 'games', pinned: false, singleton: true, description: 'Card game with dealer AI and betting system' },
+    { id: 'simon-says', name: 'Simon Says', icon: ICONS.grid, category: 'games', pinned: false, singleton: true, description: 'Memory sequence game with increasing difficulty' },
+    { id: 'breakout', name: 'Breakout', icon: ICONS.zap, category: 'games', pinned: false, singleton: true, description: 'Classic brick breaker with paddle and ball physics' },
+    { id: 'space-invaders', name: 'Space Invaders', icon: ICONS.zap, category: 'games', pinned: false, singleton: true, description: 'Classic arcade shooter with waves of aliens' },
 
     // ---- Media & Creative ----
     { id: 'video-player', name: 'Video Player', icon: ICONS.video, category: 'media', pinned: true, singleton: false, description: 'Video playback with filters and neon overlays' },

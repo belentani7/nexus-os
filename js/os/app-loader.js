@@ -24,6 +24,16 @@
       'paint':                 { Class: 'NexusPaint',               pattern: 'constructor' },
       'settings':              { Class: 'NexusSettings',            pattern: 'constructor' },
 
+      // System Tools
+      'task-manager':          { Class: 'NexusTaskManager',         pattern: 'constructor' },
+      'backup-tool':           { Class: 'NexusBackupTool',          pattern: 'constructor' },
+      'disk-analyzer':         { Class: 'NexusDiskAnalyzer',        pattern: 'constructor' },
+      'network-monitor':       { Class: 'NexusNetworkMonitor',      pattern: 'constructor' },
+      'clipboard-manager':     { Class: 'NexusClipboardManager',    pattern: 'constructor' },
+      'hash-calculator':       { Class: 'NexusHashCalculator',      pattern: 'constructor' },
+      'regex-tester':          { Class: 'NexusRegexTester',         pattern: 'constructor' },
+      'json-formatter':        { Class: 'NexusJSONFormatter',       pattern: 'constructor' },
+
       // Media Apps
       'video-player':          { Class: 'NexusVideoPlayer',         pattern: 'constructor' },
       'image-viewer':          { Class: 'NexusImageViewer',         pattern: 'constructor' },
@@ -57,7 +67,18 @@
       'memory-game':           { Class: 'MemoryGame',               pattern: 'constructor' },
       'cyber-puzzle':          { Class: 'CyberPuzzle',              pattern: 'constructor' },
       'snake':                 { Class: 'NeonSnake',                pattern: 'constructor' },
-      'tetris':                { Class: 'NeonTetris',               pattern: 'constructor' }
+      'tetris':                { Class: 'NeonTetris',               pattern: 'constructor' },
+      'chess':                 { Class: 'Chess',                    pattern: 'constructor' },
+      'wordle':                { Class: 'Wordle',                   pattern: 'constructor' },
+      'hangman':               { Class: 'Hangman',                  pattern: 'constructor' },
+      'trivia':                { Class: 'Trivia',                   pattern: 'constructor' },
+      'tic-tac-toe':           { Class: 'TicTacToe',                pattern: 'constructor' },
+      'connect-four':          { Class: 'ConnectFour',              pattern: 'constructor' },
+      'battleship':            { Class: 'Battleship',               pattern: 'constructor' },
+      'blackjack':             { Class: 'Blackjack',                pattern: 'constructor' },
+      'simon-says':            { Class: 'SimonSays',                pattern: 'constructor' },
+      'breakout':              { Class: 'Breakout',                 pattern: 'constructor' },
+      'space-invaders':        { Class: 'SpaceInvaders',            pattern: 'constructor' }
     },
 
     /**
