@@ -398,10 +398,9 @@ class NexusStorage {
         serialized = JSON.stringify({ __compressed: true, data: Compress.compress(serialized) });
       }
 
-      // Encryption
+      // Encryption (use setEncrypted() for async encryption — this path logs a warning)
       if (opts.encrypt && this._encryptionKey) {
-        const encrypted = await Crypto.encrypt(serialized, this._encryptionKey);
-        serialized = JSON.stringify({ __encrypted: true, ...encrypted });
+        console.warn('[Storage] Synchronous set() cannot encrypt. Use setEncrypted() instead.');
       }
 
       // TTL metadata
