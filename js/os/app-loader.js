@@ -42,6 +42,14 @@
       'glitch-art':            { Class: 'NexusGlitchArt',           pattern: 'constructor' },
       'screen-recorder':       { Class: 'NexusScreenRecorder',      pattern: 'constructor' },
       'media-converter':       { Class: 'NexusMediaConverter',      pattern: 'constructor' },
+      'qr-generator':          { Class: 'NexusQRGenerator',         pattern: 'constructor' },
+      'meme-generator':        { Class: 'NexusMemeGenerator',       pattern: 'constructor' },
+      'pixel-art':             { Class: 'NexusPixelArt',            pattern: 'constructor' },
+      'svg-editor':            { Class: 'NexusSVGEditor',           pattern: 'constructor' },
+      'ascii-art':             { Class: 'NexusAsciiArt',            pattern: 'constructor' },
+      'gradient-maker':        { Class: 'NexusGradientMaker',       pattern: 'constructor' },
+      'color-palette':         { Class: 'NexusColorPalette',        pattern: 'constructor' },
+      'gif-maker':             { Class: 'NexusGifMaker',            pattern: 'constructor' },
 
       // Music Studio (async-init pattern)
       'music-studio':          { Class: 'NexusMusicStudio',         pattern: 'async-init' },

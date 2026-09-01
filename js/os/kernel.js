@@ -261,6 +261,14 @@
     { id: 'glitch-art', name: 'Glitch Art', icon: ICONS.paint, category: 'media', pinned: false, singleton: true, description: '19 canvas effects: RGB shift, pixel sort, VHS, CRT' },
     { id: 'screen-recorder', name: 'Screen Recorder', icon: ICONS.film, category: 'media', pinned: false, singleton: true, description: 'Capture screen with audio and download as WebM' },
     { id: 'media-converter', name: 'Media Converter', icon: ICONS.download, category: 'media', pinned: false, singleton: true, description: 'Convert images between PNG, JPEG, WebP, BMP' },
+    { id: 'qr-generator', name: 'QR Generator', icon: ICONS.grid, category: 'media', pinned: false, singleton: true, description: 'Generate QR codes from text, download PNG/SVG' },
+    { id: 'meme-generator', name: 'Meme Generator', icon: ICONS.image, category: 'media', pinned: false, singleton: true, description: 'Add text to images, templates, drag-and-drop' },
+    { id: 'pixel-art', name: 'Pixel Art', icon: ICONS.paint, category: 'media', pinned: false, singleton: true, description: 'Create pixel art with tools, layers, export' },
+    { id: 'svg-editor', name: 'SVG Editor', icon: ICONS.code, category: 'media', pinned: false, singleton: true, description: 'Create/edit SVG with vector tools and shapes' },
+    { id: 'ascii-art', name: 'ASCII Art', icon: ICONS.terminal, category: 'media', pinned: false, singleton: true, description: 'Convert images to ASCII art, save as .txt' },
+    { id: 'gradient-maker', name: 'Gradient Maker', icon: ICONS.palette, category: 'media', pinned: false, singleton: true, description: 'Create CSS gradients with live preview and presets' },
+    { id: 'color-palette', name: 'Color Palette', icon: ICONS.palette, category: 'media', pinned: false, singleton: true, description: 'Generate palettes, harmonies, contrast check, export' },
+    { id: 'gif-maker', name: 'GIF Maker', icon: ICONS.film, category: 'media', pinned: false, singleton: true, description: 'Create animated GIFs from frames with LZW encoding' },
 
     // ---- Tools & Utilities ----
     { id: 'terminal', name: 'Terminal', icon: ICONS.terminal, category: 'tools', pinned: true, singleton: false, description: 'Command-line interface with 30+ built-in commands' },
@@ -1837,6 +1845,11 @@
       // Register process
       const pid = this.processes.register(appId, options);
 
+      // Determine window size - entertainment apps get maximum screen real estate
+      const isEntertainment = ['games', 'music', 'media'].includes(app.category);
+      const defaultWidth = isEntertainment ? window.innerWidth - 40 : (app.defaultWidth || 680);
+      const defaultHeight = isEntertainment ? window.innerHeight - 80 : (app.defaultHeight || 480);
+
       // Create window via window manager
       if (this.windowManager) {
         const win = this.windowManager.createWindow({
@@ -1844,8 +1857,8 @@
           icon: app.icon,
           appId: appId,
           pid: pid,
-          width: options.width || app.defaultWidth || 680,
-          height: options.height || app.defaultHeight || 480,
+          width: options.width || defaultWidth,
+          height: options.height || defaultHeight,
           content: '<div class="app-loading"><div class="app-loading-spinner"></div><p>Loading ' + escapeHtml(app.name) + '...</p></div>',
           onClose: () => {
             this.processes.stop(pid);
@@ -1855,6 +1868,11 @@
             }
           }
         });
+
+        // Auto-maximize entertainment apps for immersive experience
+        if (isEntertainment && this.windowManager.maximizeWindow) {
+          setTimeout(() => this.windowManager.maximizeWindow(win.id), 100);
+        }
 
         // Assign to workspace
         this.workspaces.assignWindow(win.id);

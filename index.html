@@ -35,15 +35,29 @@
   <link rel="stylesheet" href="css/tools/hash-calculator.css">
   <link rel="stylesheet" href="css/tools/regex-tester.css">
   <link rel="stylesheet" href="css/tools/json-formatter.css">
+
+  <!-- Games CSS -->
+  <link rel="stylesheet" href="js/apps/games/chess.css">
+  <link rel="stylesheet" href="js/apps/games/wordle.css">
+  <link rel="stylesheet" href="js/apps/games/hangman.css">
+  <link rel="stylesheet" href="js/apps/games/trivia.css">
+  <link rel="stylesheet" href="js/apps/games/tic-tac-toe.css">
+  <link rel="stylesheet" href="js/apps/games/connect-four.css">
+  <link rel="stylesheet" href="js/apps/games/battleship.css">
+  <link rel="stylesheet" href="js/apps/games/blackjack.css">
+  <link rel="stylesheet" href="js/apps/games/simon-says.css">
+  <link rel="stylesheet" href="js/apps/games/breakout.css">
+  <link rel="stylesheet" href="js/apps/games/space-invaders.css">
 </head>
 <body class="nexus-body" data-state="boot">
 
   <!-- ===========================================================
-       BOOT SCREEN — BIOS-like startup sequence
+       BOOT SCREEN — Full immersive boot experience
        =========================================================== -->
   <div id="boot-screen" class="boot-screen" aria-hidden="true">
     <div class="boot-scanlines"></div>
     <div class="boot-crt-overlay"></div>
+    <div class="boot-grid-bg"></div>
 
     <!-- BIOS text output -->
     <div class="boot-bios" id="boot-bios">
@@ -62,14 +76,15 @@
       <div class="bios-line" data-delay="2400">All systems nominal. Booting NEXUS OS...</div>
     </div>
 
-    <!-- NEXUS Logo with plasma glow -->
+    <!-- NEXUS Logo with massive plasma glow -->
     <div class="boot-logo" id="boot-logo">
-      <svg class="nexus-logo-svg" viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg">
+      <div class="boot-logo-glow"></div>
+      <svg class="nexus-logo-svg" viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <filter id="plasmaGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur1"/>
-            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur2"/>
-            <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur3"/>
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur1"/>
+            <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur2"/>
+            <feGaussianBlur in="SourceGraphic" stdDeviation="30" result="blur3"/>
             <feMerge>
               <feMergeNode in="blur3"/>
               <feMergeNode in="blur2"/>
@@ -83,12 +98,12 @@
             <stop offset="100%" style="stop-color:#ff003c"/>
           </linearGradient>
         </defs>
-        <text x="200" y="70" text-anchor="middle" font-family="'Courier New', monospace"
-              font-size="52" font-weight="bold" fill="url(#neonGrad)" filter="url(#plasmaGlow)"
-              letter-spacing="16">NEXUS</text>
-        <text x="200" y="100" text-anchor="middle" font-family="'Courier New', monospace"
-              font-size="16" fill="#ff2d6b" filter="url(#plasmaGlow)" letter-spacing="8"
-              opacity="0.8">OPERATING SYSTEM</text>
+        <text x="300" y="105" text-anchor="middle" font-family="'Courier New', monospace"
+              font-size="80" font-weight="bold" fill="url(#neonGrad)" filter="url(#plasmaGlow)"
+              letter-spacing="20">NEXUS</text>
+        <text x="300" y="150" text-anchor="middle" font-family="'Courier New', monospace"
+              font-size="24" fill="#ff2d6b" filter="url(#plasmaGlow)" letter-spacing="12"
+              opacity="0.9">OPERATING SYSTEM</text>
       </svg>
     </div>
 
@@ -620,6 +635,14 @@
   <script src="js/apps/glitch-art.js"></script>
   <script src="js/apps/screen-recorder.js"></script>
   <script src="js/apps/media-converter.js"></script>
+  <script src="js/apps/media/qr-generator.js"></script>
+  <script src="js/apps/media/meme-generator.js"></script>
+  <script src="js/apps/media/pixel-art.js"></script>
+  <script src="js/apps/media/svg-editor.js"></script>
+  <script src="js/apps/media/ascii-art.js"></script>
+  <script src="js/apps/media/gradient-maker.js"></script>
+  <script src="js/apps/media/color-palette.js"></script>
+  <script src="js/apps/media/gif-maker.js"></script>
   <script src="js/apps/music-studio.js"></script>
   <script src="js/apps/synth-lab.js"></script>
   <script src="js/apps/drum-machine.js"></script>
