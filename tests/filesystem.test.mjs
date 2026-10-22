@@ -16,13 +16,14 @@ function createFileSystem() {
 }
 test("rename collision refuses to erase an existing sibling", () => {
   const {fs,values} = createFileSystem();
+  const initialCount=fs.resolve("/Documents").childCount;
   const a=fs.create("/Documents","first.txt","text","A");
   const b=fs.create("/Documents","second.txt","text","B");
   assert.ok(a&&b);
   assert.throws(()=>a.rename("second.txt"),/already exists/);
   assert.equal(fs.resolve("/Documents/first.txt").content,"A");
   assert.equal(fs.resolve("/Documents/second.txt").content,"B");
-  assert.equal(fs.resolve("/Documents").childCount,2);
+  assert.equal(fs.resolve("/Documents").childCount,initialCount+2);
   assert.equal(values.has("nexus_filesystem"),true);
 });
 test("move refuses destination collisions without orphaning source", () => {
@@ -52,8 +53,8 @@ test("rejects slash segments, traversal names and duplicate copy targets", () =>
 test("successful rename preserves document content and its new path", () => {
   const {fs}=createFileSystem();
   const src=fs.create("/Documents","project.txt","text","Working file");
-  src.rename("notes.txt");
-  assert.equal(fs.resolve("/Documents/notes.txt").content,"Working file");
+  src.rename("project-notes-2026.txt");
+  assert.equal(fs.resolve("/Documents/project-notes-2026.txt").content,"Working file");
   assert.equal(fs.resolve("/Documents/project.txt"),null);
-  assert.equal(fs.move("/Documents/notes.txt","/Documents/notes.txt"),true);
+  assert.equal(fs.move("/Documents/project-notes-2026.txt","/Documents/project-notes-2026.txt"),true);
 });
