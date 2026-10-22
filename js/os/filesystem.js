@@ -8,6 +8,14 @@
 
 (function (global) {
   'use strict';
+  // Names are single virtual path segments; disallow ambiguous separators and
+  // control bytes before touching parent maps or persisted user files.
+  function validNodeName(name) {
+    return typeof name === 'string' && name.length > 0 && name.length <= 120 &&
+      name.trim() === name && name !== '.' && name !== '..' &&
+      !/[\\/\u0000-\u001f\u007f]/.test(name);
+  }
+
 
   // ============================================================
   // SECTION 1: FILE SYSTEM NODE — Base class for files/folders
@@ -156,15 +164,19 @@
      * @param {string} newName
      */
     rename(newName) {
-      if (!newName || !newName.trim()) {
-        throw new Error('Name cannot be empty');
+      if (!validNodeName(newName)) {
+        throw new Error('Invalid filename');
+      }
+      if (newName === this.name) return;
+      if (this.parent && this.parent.hasChild(newName)) {
+        throw new Error('A file or folder with this name already exists');
       }
 
       const oldName = this.name;
-      this.name = newName.trim();
+      // Mutate only after validating: a failed rename must never orphan
+      // another document or drop it from the parent map.
+      this.name = newName;
       this.metadata.modified = new Date();
-
-      // Update parent's children map
       if (this.parent) {
         this.parent.children.delete(oldName);
         this.parent.children.set(this.name, this);
@@ -350,6 +362,10 @@
         return null;
       }
 
+      if (!validNodeName(name)) {
+        console.warn('[FS] Invalid single-segment file or folder name');
+        return null;
+      }
       if (parent.hasChild(name)) {
         console.warn(`[FS] "${name}" already exists in ${parentPath}`);
         return null;
@@ -466,12 +482,17 @@
       if (!source || source === this.root) return false;
 
       // Parse destination
+      if (typeof destPath !== 'string') return false;
       const destParts = destPath.split('/').filter(p => p.length > 0);
       const newName = destParts.pop();
+      if (!validNodeName(newName)) return false;
       const destParentPath = '/' + destParts.join('/');
 
       const destParent = this.resolve(destParentPath || '/');
       if (!destParent || !destParent.isFolder) return false;
+      if (destParent === source.parent && newName === source.name) return true;
+      // Never detach the source until the destination is guaranteed vacant.
+      if (destParent.hasChild(newName)) return false;
 
       // Prevent moving into self
       let check = destParent;
@@ -514,6 +535,7 @@
       clone.id = 'fs_' + Math.random().toString(36).substr(2, 9);
 
       if (newName) {
+        if (!validNodeName(newName) || destParent.hasChild(newName)) return null;
         clone.name = newName;
       } else {
         // Auto-generate unique name
