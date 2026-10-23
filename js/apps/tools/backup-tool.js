@@ -16,24 +16,17 @@ class NexusBackupTool {
     this.progress = 0;
     this.isRunning = false;
 
+    // Only datasets whose real persistence keys have been verified in NEXUS OS.
+    // This tool does not back up IndexedDB or third-party application data.
     this.appData = {
-      'terminal':      { name: 'Terminal',         icon: '⌨', size: 2400,  data: { history: 50, aliases: 8, config: true } },
-      'calculator':    { name: 'Calculator',       icon: '🧮', size: 800,   data: { history: 30, settings: true } },
-      'notepad':       { name: 'Notepad',          icon: '📝', size: 15600, data: { documents: 12, autosave: true } },
-      'code-editor':   { name: 'Code Editor',      icon: '💻', size: 45200, data: { files: 28, sessions: 5, settings: true } },
-      'file-explorer': { name: 'File Explorer',    icon: '📁', size: 3200,  data: { bookmarks: 6, viewPrefs: true } },
-      'paint':         { name: 'Paint',            icon: '🎨', size: 89000, data: { canvases: 7, palettes: 3 } },
-      'settings':      { name: 'Settings',         icon: '⚙', size: 1200,  data: { theme: true, layout: true, prefs: true } },
-      'clock':         { name: 'Clock',            icon: '🕐', size: 600,   data: { alarms: 3, timezone: true } },
-      'weather':       { name: 'Weather',          icon: '🌤', size: 4500,  data: { locations: 4, cache: true } },
-      'music-studio':  { name: 'Music Studio',     icon: '🎵', size: 234000, data: { projects: 3, samples: 45, presets: 12 } },
-      'synth-lab':     { name: 'Synth Lab',        icon: '🎹', size: 18000, data: { patches: 22, presets: 8 } },
-      'drum-machine':  { name: 'Drum Machine',     icon: '🥁', size: 56000, data: { kits: 5, patterns: 16 } },
-      'ai-chat':       { name: 'AI Chat',          icon: '🤖', size: 67000, data: { conversations: 15, context: true } },
-      'game-saves':    { name: 'Game Saves',       icon: '🎮', size: 12400, data: { saves: 8, scores: true } },
+      filesystem: { name: 'Virtual Filesystem', icon: '📁', key: 'nexus_filesystem' },
+      notepad:    { name: 'Notepad', icon: '📝', key: 'nexus:notepad:notes' },
+      settings:   { name: 'Settings', icon: '⚙', key: 'nexus:settings:config' }
     };
+    this.maxExportBytes = 5 * 1024 * 1024;
 
-    this._loadBackups();
+
+      this._loadBackups();
   }
 
   render() {
@@ -63,12 +56,12 @@ class NexusBackupTool {
   _getHTML() {
     return `
       <div class="bt-header">
-        <h3>💾 BACKUP TOOL</h3>
-        <span style="font-size:10px;color:#555">NEXUS Data Protection</span>
+        <h3>💾 LOCAL DATA BACKUP</h3>
+        <span style="font-size:10px;color:#555">Actual localStorage snapshots · No IndexedDB/cloud backup</span>
       </div>
       <div class="bt-body">
         <div class="bt-section">
-          <h4>Select Applications to Backup</h4>
+          <h4>Select Local Data to Back Up</h4>
           <div class="bt-app-list" id="bt-app-list"></div>
           <div style="margin-top:8px;display:flex;gap:6px">
             <button class="bt-btn" id="bt-select-all">Select All</button>
@@ -79,10 +72,10 @@ class NexusBackupTool {
         <div class="bt-section">
           <h4>Actions</h4>
           <div class="bt-actions">
-            <button class="bt-btn bt-btn-primary" id="bt-backup">⬇ Create Backup</button>
+            <button class="bt-btn bt-btn-primary" id="bt-backup">⬇ Create Real Snapshot</button>
             <button class="bt-btn bt-btn-primary" id="bt-export">📤 Export JSON</button>
             <button class="bt-btn bt-btn-warn" id="bt-import">📥 Import Backup</button>
-            <button class="bt-btn bt-btn-warn" id="bt-restore">🔄 Restore Selected</button>
+            <button class="bt-btn bt-btn-warn" id="bt-restore">🔄 Restore One Snapshot</button>
           </div>
           <div class="bt-progress" id="bt-progress-wrap" style="display:none">
             <div class="bt-progress-bar" id="bt-progress-bar" style="width:0%"></div>
@@ -140,13 +133,15 @@ class NexusBackupTool {
     let totalSize = 0;
     el.innerHTML = Object.entries(this.appData).map(([key, app]) => {
       const sel = this.selectedApps.has(key);
-      if (sel) totalSize += app.size;
+      const raw = localStorage.getItem(app.key);
+      const size = raw === null ? 0 : new Blob([raw]).size;
+      if (sel) totalSize += size;
       return `
         <div class="bt-app-item ${sel ? 'selected' : ''}" data-key="${key}">
           <input type="checkbox" class="bt-app-check" ${sel ? 'checked' : ''}>
           <span>${app.icon}</span>
           <span>${app.name}</span>
-          <span class="bt-app-size">${this._fmtSize(app.size)}</span>
+          <span class="bt-app-size">${this._fmtSize(size)}</span>
         </div>
       `;
     }).join('');
@@ -162,8 +157,8 @@ class NexusBackupTool {
     el.innerHTML = this.backups.map((b, i) => `
       <div class="bt-backup-item">
         <input type="checkbox" class="bt-app-check bt-backup-check" data-idx="${i}">
-        <span class="bt-backup-date">${b.date}</span>
-        <span>${b.apps.length} apps</span>
+        <span class="bt-backup-date">${this._escape(b.date)}</span>
+        <span>${b.apps.length} datasets</span>
         <span style="color:#888">${b.apps.map(a => this.appData[a]?.icon || '?').join('')}</span>
         <span class="bt-backup-size">${this._fmtSize(b.size)}</span>
         <button class="bt-btn" data-action="delete" data-idx="${i}" style="padding:2px 8px;font-size:9px">✕</button>
@@ -185,7 +180,7 @@ class NexusBackupTool {
   _renderLog() {
     const el = this.element.querySelector('#bt-log');
     el.innerHTML = this.logs.slice(-50).map(l =>
-      `<div class="bt-log-entry"><span class="bt-log-time">${l.time}</span><span class="bt-log-${l.type}">${l.msg}</span></div>`
+      `<div class="bt-log-entry"><span class="bt-log-time">${this._escape(l.time)}</span><span class="bt-log-${["info", "warn", "err", "ok"].includes(l.type) ? l.type : "info"}">${this._escape(l.msg)}</span></div>`
     ).join('');
     el.scrollTop = el.scrollHeight;
   }
@@ -200,140 +195,189 @@ class NexusBackupTool {
     this._renderLog();
   }
 
+  /**
+   * Check imported data BEFORE it can be displayed, stored or restored.
+   * Reject v1 demo backups: those only contained invented metadata.
+   */
+  _isValidBackup(backup) {
+    if (!backup || typeof backup !== 'object' || backup.version !== 2 ||
+        !Array.isArray(backup.apps) || backup.apps.length === 0 ||
+        backup.apps.length > Object.keys(this.appData).length ||
+        typeof backup.date !== 'string' || backup.date.length > 80 ||
+        !backup.data || typeof backup.data !== 'object') return false;
+
+    const unique = new Set(backup.apps);
+    if (unique.size !== backup.apps.length ||
+        Object.keys(backup.data).length !== unique.size) return false;
+    for (const app of unique) {
+      const expected = Object.prototype.hasOwnProperty.call(this.appData, app)
+        ? this.appData[app].key : null;
+      const item = Object.prototype.hasOwnProperty.call(backup.data, app)
+        ? backup.data[app] : null;
+      if (!expected || !item || typeof item !== 'object' ||
+          item.key !== expected || typeof item.value !== 'string') return false;
+    }
+    return new Blob([JSON.stringify(backup)]).size <= this.maxExportBytes;
+  }
+
+  _escape(value) {
+    return String(value).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  }
+
   async _createBackup() {
-    if (this.isRunning) return;
-    if (this.selectedApps.size === 0) {
-      this._log('No applications selected for backup', 'warn');
-      return;
-    }
-
-    this.isRunning = true;
+    if (this.isRunning) return false;
     const apps = [...this.selectedApps];
-    const totalSize = apps.reduce((s, k) => s + (this.appData[k]?.size || 0), 0);
-
-    this._log(`Starting backup of ${apps.length} applications...`, 'info');
-    this._showProgress(true);
-
-    for (let i = 0; i < apps.length; i++) {
-      const app = this.appData[apps[i]];
-      await this._delay(300 + Math.random() * 400);
-      this._setProgress(((i + 1) / apps.length) * 100);
-      this._log(`Backed up ${app.icon} ${app.name} (${this._fmtSize(app.size)})`, 'ok');
+    if (!apps.length) {
+      this._log('Select at least one dataset.', 'warn');
+      return false;
     }
-
-    const backup = {
-      id: Date.now(),
-      date: new Date().toLocaleString(),
-      apps: [...apps],
-      size: totalSize,
-      data: {}
-    };
-
-    // Simulate data capture
-    apps.forEach(k => {
-      backup.data[k] = { ...this.appData[k].data, timestamp: Date.now(), checksum: this._fakeHash() };
-    });
-
-    this.backups.unshift(backup);
-    this._saveBackups();
-    this._renderBackups();
-
-    this._log(`Backup complete: ${this._fmtSize(totalSize)} total`, 'ok');
-    this._showProgress(false);
-    this.isRunning = false;
+    this.isRunning = true;
+    this._showProgress(true);
+    try {
+      const data = {};
+      let total = 0;
+      for (const app of apps) {
+        const mapping = Object.prototype.hasOwnProperty.call(this.appData, app)
+          ? this.appData[app] : null;
+        if (!mapping) throw new Error('Unknown dataset: ' + app);
+        const value = localStorage.getItem(mapping.key);
+        if (value === null) throw new Error('No saved data found for ' + mapping.name);
+        data[app] = { key: mapping.key, value };
+        total += new Blob([value]).size;
+      }
+      const backup = {
+        version: 2,
+        id: Date.now(),
+        date: new Date().toISOString(),
+        apps,
+        size: total,
+        data
+      };
+      if (!this._isValidBackup(backup)) throw new Error('Snapshot too large or invalid');
+      this.backups.unshift(backup);
+      if (!this._saveBackups()) {
+        this.backups.shift();
+        throw new Error('Browser storage is full. Export an existing snapshot before retrying.');
+      }
+      this._renderBackups();
+      this._setProgress(100);
+      this._log('Captured actual browser data (' + this._fmtSize(total) +
+        '). Export JSON to keep an independent copy.', 'ok');
+      return true;
+    } catch (err) {
+      this._log('Snapshot failed: ' + err.message, 'err');
+      return false;
+    } finally {
+      this.isRunning = false;
+      this._showProgress(false);
+    }
   }
 
   async _exportJSON() {
-    if (this.backups.length === 0) {
-      this._log('No backups to export', 'warn');
-      return;
+    if (!this.backups.length) {
+      this._log('Nothing to export.', 'warn');
+      return false;
     }
-    this._log('Exporting backup data as JSON...', 'info');
-    await this._delay(500);
-
-    const exportData = {
-      nexus_backup: true,
-      version: '1.0',
-      exported: new Date().toISOString(),
-      backups: this.backups.map(b => ({
-        ...b,
-        data: Object.fromEntries(
-          Object.entries(b.data).map(([k, v]) => [k, { ...v, exported: true }])
-        )
-      }))
-    };
-
+    const backupSet = this.backups.filter(b => this._isValidBackup(b));
+    if (!backupSet.length) return false;
+    const exportData = { nexus_backup: true, version: 2,
+      exported: new Date().toISOString(), backups: backupSet };
     const json = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `nexus-backup-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    this._log(`Exported ${this.backups.length} backups (${this._fmtSize(json.length)})`, 'ok');
+    if (new Blob([json]).size > this.maxExportBytes) {
+      this._log('Export is too large. Delete older local snapshots first.', 'warn');
+      return false;
+    }
+    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'nexus-local-data-' + Date.now() + '.json';
+      a.click();
+      this._log('Downloaded ' + backupSet.length + ' real snapshot(s). Keep file private.', 'ok');
+      return true;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
   }
 
   async _importBackup() {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json';
-    input.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
+    input.accept = '.json,application/json';
+    input.addEventListener('change', async (event) => {
+      const file = event.target.files?.[0];
       if (!file) return;
-
-      this._log(`Importing ${file.name}...`, 'info');
       try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        if (!data.nexus_backup) {
-          this._log('Invalid backup file format', 'err');
-          return;
+        if (file.size > this.maxExportBytes) throw new Error('File larger than 5 MB');
+        const parsed = JSON.parse(await file.text());
+        if (parsed?.nexus_backup !== true || parsed.version !== 2 ||
+            !Array.isArray(parsed.backups) || parsed.backups.length > 20 ||
+            !parsed.backups.every(b => this._isValidBackup(b))) {
+          throw new Error('Invalid or legacy demo backup format');
         }
-        const count = data.backups?.length || 0;
-        this.backups.unshift(...(data.backups || []));
-        this._saveBackups();
+        const before = this.backups;
+        this.backups = [...parsed.backups, ...before].slice(0, 20);
+        if (!this._saveBackups()) {
+          this.backups = before;
+          throw new Error('Not enough local storage for imported snapshots');
+        }
         this._renderBackups();
-        this._log(`Imported ${count} backups from ${file.name}`, 'ok');
+        this._log('Imported ' + parsed.backups.length + ' snapshot(s). Nothing restored yet.', 'ok');
       } catch (err) {
-        this._log(`Import failed: ${err.message}`, 'err');
+        this._log('Import refused: ' + err.message, 'err');
       }
     });
     input.click();
   }
 
   async _restoreSelected() {
-    const checks = this.element.querySelectorAll('.bt-backup-check:checked');
-    if (checks.length === 0) {
-      this._log('No backups selected for restore', 'warn');
-      return;
+    if (this.isRunning) return false;
+    const checks = [...this.element.querySelectorAll('.bt-backup-check:checked')];
+    if (checks.length !== 1) {
+      this._log('Select exactly one snapshot for restore.', 'warn');
+      return false;
     }
+    const index = Number(checks[0].dataset.idx);
+    const backup = this.backups[index];
+    if (!this._isValidBackup(backup)) {
+      this._log('Snapshot is invalid or belongs to the old simulated format.', 'err');
+      return false;
+    }
+    if (typeof window.confirm !== 'function' || !window.confirm(
+      'Overwrite the selected local data? Export your current snapshot first.')) return false;
 
     this.isRunning = true;
-    this._showProgress(true);
-
-    for (let i = 0; i < checks.length; i++) {
-      const idx = parseInt(checks[i].dataset.idx);
-      const backup = this.backups[idx];
-      if (!backup) continue;
-
-      this._log(`Restoring backup from ${backup.date}...`, 'info');
-      for (let j = 0; j < backup.apps.length; j++) {
-        const app = this.appData[backup.apps[j]];
-        await this._delay(200 + Math.random() * 300);
-        const pct = ((i * backup.apps.length + j + 1) / (checks.length * Math.max(backup.apps.length, 1))) * 100;
-        this._setProgress(pct);
-        if (app) this._log(`Restored ${app.icon} ${app.name}`, 'ok');
+    const originals = new Map();
+    try {
+      for (const app of backup.apps) {
+        const key = this.appData[app].key;
+        originals.set(key, localStorage.getItem(key));
       }
+      for (const app of backup.apps) {
+        const { key, value } = backup.data[app];
+        localStorage.setItem(key, value);
+      }
+      this._log('Local data restored. Refresh the page to reload it.', 'ok');
+      return true;
+    } catch (err) {
+      let rollbackFailed = false;
+      for (const [key, original] of originals) {
+        try {
+          if (original === null) localStorage.removeItem(key);
+          else localStorage.setItem(key, original);
+        } catch (_) { rollbackFailed = true; }
+      }
+      this._log('Restore failed: ' + err.message +
+        (rollbackFailed ? ' Rollback incomplete; do not close this page.' : ' Previous data restored.'), 'err');
+      return false;
+    } finally {
+      this.isRunning = false;
     }
-
-    this._log('All selected backups restored successfully', 'ok');
-    this._showProgress(false);
-    this.isRunning = false;
   }
 
-  _showProgress(show) {
+
+    _showProgress(show) {
     this.element.querySelector('#bt-progress-wrap').style.display = show ? 'block' : 'none';
     if (!show) this._setProgress(0);
   }
@@ -345,29 +389,35 @@ class NexusBackupTool {
 
   _loadBackups() {
     try {
-      const data = localStorage.getItem('nexus:backups');
-      if (data) this.backups = JSON.parse(data);
-    } catch (e) { this.backups = []; }
+      const raw = localStorage.getItem('nexus:backups');
+      const parsed = raw ? JSON.parse(raw) : [];
+      this.backups = Array.isArray(parsed)
+        ? parsed.filter(b => this._isValidBackup(b)).slice(0, 20) : [];
+    } catch (_) {
+      this.backups = [];
+    }
   }
 
   _saveBackups() {
     try {
-      // Limit to 20 backups to avoid storage bloat
       localStorage.setItem('nexus:backups', JSON.stringify(this.backups.slice(0, 20)));
-    } catch (e) { /* storage full */ }
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
-  _fmtSize(bytes) {
+
+    _fmtSize(bytes) {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / 1048576).toFixed(1)} MB`;
   }
 
-  _fakeHash() {
-    return Array.from({ length: 16 }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
-  }
+  // No fake hashes or artificial delays: a snapshot succeeds only when
+  // actual data was captured and persisted.
 
-  _delay(ms) { return new Promise(r => setTimeout(r, ms)); }
-}
+
+  }
 
 window.NexusBackupTool = NexusBackupTool;
