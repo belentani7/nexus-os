@@ -833,5 +833,3 @@ class NexusNetwork {
   }
 }
 
-export default NexusNetwork;
-export { NexusNetwork, NexusHttpClient, NexusWebSocketManager, NexusWebSocket, NexusAPIKeyManager };

@@ -960,5 +960,3 @@ class NexusStorage {
   }
 }
 
-export default NexusStorage;
-export { NexusStorage, Compress, Crypto };

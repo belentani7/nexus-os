@@ -145,7 +145,7 @@ const NEXUS_LORE = {
  * and Hebrew letter correspondence.
  * @constant {Array<Object>}
  */
-const TAROT_DECK = [
+const TAROT_DECK_CORE = [
 
   // ─── Major Arcana (0–21) ───────────────────────────────────────────────────
 
@@ -787,7 +787,7 @@ const TAROT_DECK = [
 
 
 // ════════════════════════════════════════════════════════════════════════════
-//  12 JUNGIAN ARCHETYPES (expanded multi-line objects)
+//  12 JUNGIAN ARCHETYPES_CORE (expanded multi-line objects)
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
@@ -795,7 +795,7 @@ const TAROT_DECK = [
  * Used by the archetype quiz and guidance system.
  * @constant {Array<Object>}
  */
-const ARCHETYPES = [
+const ARCHETYPES_CORE = [
 
   {
     id: 'innocent',
@@ -1002,7 +1002,7 @@ const ARCHETYPES = [
  * to ensure accurate scoring across all 12 archetypes.
  * @constant {Array<Object>}
  */
-const ARCHETYPE_QUESTIONS = [
+const ARCHETYPE_QUESTIONS_CORE = [
 
   // --- Round 1: Core archetypes (Innocent, Orphan, Hero, Caregiver) ---
 
@@ -1381,7 +1381,7 @@ const ARCHETYPE_QUESTIONS = [
  * judgement, image, and practical advice.
  * @constant {Array<Object>}
  */
-const ICHING_HEXAGRAMS = [
+const ICHING_HEXAGRAMS_CORE = [
 
   {
     number: 1,
@@ -2091,7 +2091,7 @@ const ICHING_HEXAGRAMS = [
 
 
 // ════════════════════════════════════════════════════════════════════════════
-//  24 ELDER FUTHARK RUNES
+//  24 ELDER FUTHARK RUNES_CORE
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
@@ -2100,7 +2100,7 @@ const ICHING_HEXAGRAMS = [
  * and elemental correspondence.
  * @constant {Array<Object>}
  */
-const RUNES = [
+const RUNES_CORE = [
 
   {
     name: 'Fehu', letter: 'F',
@@ -2306,7 +2306,7 @@ const RUNES = [
  * Used by the dream analysis engine to identify and interpret dream imagery.
  * @constant {Array<Object>}
  */
-const DREAM_SYMBOLS = [
+const DREAM_SYMBOLS_CORE = [
 
   // --- Nature & Elements ---
   { symbol: 'water', meanings: ['emotions', 'unconscious', 'flow of life', 'purification'], categories: ['nature'] },
@@ -2637,7 +2637,7 @@ const ZODIAC = [
  * Includes both classic responses and NEXUS-themed additions.
  * @constant {Object}
  */
-const MAGIC_8_RESPONSES = {
+const MAGIC_8_RESPONSES_CORE = {
 
   positive: [
     'It is certain',
@@ -3177,7 +3177,7 @@ class NexusAI {
    * @returns {Array<Object>} Array of drawn card objects
    */
   drawCards(count = 1) {
-    const deck = [...TAROT_DECK];
+    const deck = [...TAROT_DECK_CORE];
     const drawn = [];
     const maxDraw = Math.min(count, deck.length);
 
@@ -3402,7 +3402,7 @@ class NexusAI {
    * @returns {Array<Object>} Array of question objects
    */
   getQuizQuestions() {
-    return ARCHETYPE_QUESTIONS;
+    return ARCHETYPE_QUESTIONS_CORE;
   }
 
 
@@ -3411,7 +3411,7 @@ class NexusAI {
    * @returns {Array<Object>} Array of archetype objects
    */
   getArchetypes() {
-    return ARCHETYPES;
+    return ARCHETYPES_CORE;
   }
 
 
@@ -3423,7 +3423,7 @@ class NexusAI {
   scoreQuiz(answers) {
     // Initialize scores for all archetypes
     const scores = {};
-    for (const archetype of ARCHETYPES) {
+    for (const archetype of ARCHETYPES_CORE) {
       scores[archetype.id] = 0;
     }
 
@@ -3438,8 +3438,8 @@ class NexusAI {
     const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
     // Identify primary and secondary archetypes
-    const primary = ARCHETYPES.find(a => a.id === sorted[0][0]);
-    const secondary = ARCHETYPES.find(a => a.id === sorted[1][0]);
+    const primary = ARCHETYPES_CORE.find(a => a.id === sorted[0][0]);
+    const secondary = ARCHETYPES_CORE.find(a => a.id === sorted[1][0]);
 
     this._archetypeResult = {
       primary,
@@ -3458,7 +3458,7 @@ class NexusAI {
    * @returns {Object} Guidance object with advice, shadow warning, and affirmation
    */
   archetypeGuidance(archetypeId) {
-    const archetype = ARCHETYPES.find(a => a.id === archetypeId) || ARCHETYPES[0];
+    const archetype = ARCHETYPES_CORE.find(a => a.id === archetypeId) || ARCHETYPES_CORE[0];
 
     const guidanceMap = {
       innocent: 'Embrace simplicity today. Find one moment of pure, uncomplicated joy and let it fill you completely. The world needs your optimism.',
@@ -3496,8 +3496,8 @@ class NexusAI {
    * @returns {Object|null} Compatibility result, or null if invalid IDs
    */
   archetypeCompatibility(id1, id2) {
-    const archetype1 = ARCHETYPES.find(a => a.id === id1);
-    const archetype2 = ARCHETYPES.find(a => a.id === id2);
+    const archetype1 = ARCHETYPES_CORE.find(a => a.id === id1);
+    const archetype2 = ARCHETYPES_CORE.find(a => a.id === id2);
 
     if (!archetype1 || !archetype2) {
       return null;
@@ -3541,7 +3541,7 @@ class NexusAI {
    * @returns {Object} I Ching reading result
    */
   consultIChing(question = '') {
-    const hex = ICHING_HEXAGRAMS[Math.floor(Math.random() * ICHING_HEXAGRAMS.length)];
+    const hex = ICHING_HEXAGRAMS_CORE[Math.floor(Math.random() * ICHING_HEXAGRAMS_CORE.length)];
     const changingLine = Math.floor(Math.random() * 6) + 1;
     const confidence = Math.floor(70 + Math.random() * 25);
 
@@ -3571,7 +3571,7 @@ class NexusAI {
    * @returns {Object} Rune reading result
    */
   castRunes(count = 3) {
-    const available = [...RUNES];
+    const available = [...RUNES_CORE];
     const drawn = [];
     const maxDraw = Math.min(count, 5, available.length);
 
@@ -3653,9 +3653,9 @@ class NexusAI {
    * @returns {Object} 8-Ball response
    */
   magic8Ball(question = '') {
-    const categories = Object.keys(MAGIC_8_RESPONSES);
+    const categories = Object.keys(MAGIC_8_RESPONSES_CORE);
     const category = categories[Math.floor(Math.random() * categories.length)];
-    const responses = MAGIC_8_RESPONSES[category];
+    const responses = MAGIC_8_RESPONSES_CORE[category];
     const answer = responses[Math.floor(Math.random() * responses.length)];
 
     const confidenceMap = {
@@ -4042,7 +4042,7 @@ class NexusAI {
     const lower = dreamText.toLowerCase();
 
     // Find all matching symbols
-    const found = DREAM_SYMBOLS.filter(s => lower.includes(s.symbol));
+    const found = DREAM_SYMBOLS_CORE.filter(s => lower.includes(s.symbol));
 
     if (found.length === 0) {
       return {
@@ -4845,24 +4845,4 @@ class NexusAI {
 //  EXPORTS
 // ════════════════════════════════════════════════════════════════════════════
 
-export default NexusAI;
 
-export {
-  NexusAI,
-  NEXUS_LORE,
-  TAROT_DECK,
-  ARCHETYPES,
-  ARCHETYPE_QUESTIONS,
-  ICHING_HEXAGRAMS,
-  RUNES,
-  DREAM_SYMBOLS,
-  ZODIAC,
-  MAGIC_8_RESPONSES,
-  FORTUNE_COOKIES,
-  SONG_VOCAB,
-  RHYME_SCHEMES,
-  POEM_FORMS,
-  NAME_BANKS,
-  CYBER_LOREM,
-  SPIRIT_RESPONSES
-};
