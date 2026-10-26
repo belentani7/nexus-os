@@ -11,7 +11,7 @@
 
 ## What is NEXUS OS?
 
-NEXUS OS is a browser-based operating system shell featuring a neon glassmorphism aesthetic, a complete window manager, 38+ built-in applications, and a cinematic boot sequence. Built entirely with vanilla JavaScript — zero frameworks, zero dependencies.
+NEXUS OS is a browser-based operating system shell featuring a neon glassmorphism aesthetic, a complete window manager, 60+ built-in applications, and a cinematic boot sequence. Built entirely with vanilla JavaScript — zero frameworks, zero dependencies.
 
 Every pixel is hand-crafted: CRT scanline boot animations, plasma-glow SVG logos, glass-depth layering, and three fully themed color systems.
 
@@ -21,7 +21,7 @@ Every pixel is hand-crafted: CRT scanline boot animations, plasma-glow SVG logos
 
 - **🖥️ Cinematic Boot Sequence** — BIOS-style startup with CRT scanlines, memory bank initialization, and animated logo reveal
 - **🪟 Full Window Manager** — Draggable, resizable, minimizable windows with z-index stacking, snapping, and workspace management
-- **📦 38+ Built-in Apps** — From AI chat and tarot readers to drum machines and neon pong
+- **📦 60+ Built-in Apps** — From AI chat and tarot readers to drum machines and neon pong (63 app modules under `js/apps/`)
 - **🎨 3 Themes** — Neon Red (default), Cyber Night, and Void Black
 - **🔊 Web Audio Engine** — Synthesizers, drum machines, and audio visualizers powered by the Web Audio API
 - **📁 Virtual Filesystem** — In-browser file storage with persistence via localStorage
@@ -119,11 +119,14 @@ Switch themes via the Settings app or the system tray.
 ```
 nexus-os/
 ├── index.html              # Main entry point
+├── ecosistema.html         # Belentani ecosystem circuit page
+├── qwen-gestalt.html       # Standalone "Qwen Gestalt" themed page
 ├── css/
 │   ├── animations.css      # Keyframes and motion
 │   ├── glass.css           # Glassmorphism depth system
 │   ├── components.css      # UI component library
 │   ├── desktop.css         # OS shell layout
+│   ├── tools/              # Styles for the utility tools (backup, clipboard, task manager, ...)
 │   └── themes/
 │       ├── neon-red.css    # Primary theme
 │       ├── cyber-night.css # Secondary theme
@@ -134,6 +137,7 @@ nexus-os/
 │   │   ├── window-manager.js
 │   │   ├── taskbar.js
 │   │   ├── app-loader.js
+│   │   ├── app-registry.js
 │   │   └── filesystem.js
 │   ├── engine/
 │   │   ├── audio-engine.js # Web Audio synthesis
@@ -142,11 +146,14 @@ nexus-os/
 │   │   ├── process-manager.js
 │   │   ├── event-bus.js
 │   │   └── network.js
-│   └── apps/               # 38+ application modules
+│   └── apps/               # 60+ application modules (63 .js files)
 │       ├── ai-chat.js
 │       ├── music-studio.js
 │       ├── terminal.js
 │       ├── tetris.js
+│       ├── games/          # chess, wordle, space-invaders, ...
+│       ├── media/          # qr-generator, meme-generator, pixel-art, ...
+│       ├── tools/          # backup-tool, json-formatter, task-manager, ...
 │       └── ...
 ```
 
