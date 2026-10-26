@@ -181,6 +181,8 @@
         this.parent.children.delete(oldName);
         this.parent.children.set(this.name, this);
         this.parent.metadata.modified = new Date();
+        // A rename must survive a reload just like move() and write().
+        if (global.NexusFS) global.NexusFS._save();
       }
     }
 
@@ -263,6 +265,10 @@
 
       /** @type {number} Max localStorage size (bytes) */
       this._maxStorageSize = 5 * 1024 * 1024; // 5MB
+      this._storageReadOnly = false;
+      this._unreadableRaw = null;
+      this._storageWarningShown = false;
+      this._storageWarningScheduled = false;
     }
 
     /**
@@ -275,6 +281,7 @@
         this._createDefaultStructure();
       }
 
+      if (this._storageReadOnly) this._showStorageWarning();
       console.log('[Filesystem] Initialized. Root children:', this.root.childCount);
     }
 
@@ -785,43 +792,96 @@
      * @private
      */
     _save() {
+      // Never overwrite an unreadable user snapshot with demo defaults.
+      if (this._storageReadOnly) return false;
       try {
         const data = JSON.stringify(this.serialize());
-        if (data.length > this._maxStorageSize) {
-          console.warn('[FS] Data exceeds storage limit, skipping save');
-          return;
+        if (new Blob([data]).size > this._maxStorageSize) {
+          throw new Error('Filesystem exceeds the browser storage limit');
         }
         localStorage.setItem(this._storageKey, data);
+        return true;
       } catch (e) {
-        console.warn('[FS] Failed to save to localStorage:', e);
+        this._storageReadOnly = true;
+        console.warn('[FS] Saving disabled to protect existing user data:', e);
+        this._showStorageWarning();
+        return false;
       }
     }
 
     /**
-     * Load from localStorage
-     * @returns {boolean} True if loaded successfully
-     * @private
+     * Load saved data. If it is corrupt or browser storage is unavailable,
+     * run a temporary filesystem without replacing the original value.
      */
     _load() {
+      let raw = null;
       try {
-        const raw = localStorage.getItem(this._storageKey);
-        if (!raw) return false;
-
+        raw = localStorage.getItem(this._storageKey);
+        if (raw === null) return false;
         const data = JSON.parse(raw);
-        this.root = FSNode.deserialize(data.root, null);
-
-        // Restore trash
-        this._trash = (data.trash || []).map(t => ({
+        if (!data || typeof data !== 'object' || !data.root ||
+            data.root.type !== 'folder' || !data.root.children ||
+            typeof data.root.children !== 'object' || Array.isArray(data.root.children) ||
+            (data.trash !== undefined && !Array.isArray(data.trash))) {
+          throw new Error('Invalid filesystem snapshot');
+        }
+        const root = FSNode.deserialize(data.root, null);
+        const trash = (data.trash || []).map(t => ({
           node: FSNode.deserialize(t.node, null),
           originalPath: t.originalPath,
           deletedAt: new Date(t.deletedAt),
         }));
-
+        this.root = root;
+        this._trash = trash;
         return true;
       } catch (e) {
-        console.warn('[FS] Failed to load from localStorage:', e);
+        this._storageReadOnly = true;
+        this._unreadableRaw = raw;
+        console.warn('[FS] Stored filesystem could not be loaded; original preserved:', e);
         return false;
       }
+    }
+
+    /**
+     * Accessible warning, with an opt-in export of the original damaged data.
+     * Never include the user's saved file contents in console logs or markup.
+     */
+    _showStorageWarning() {
+      const doc = global.document;
+      if (!doc || this._storageWarningShown) return;
+      if (!doc.body) {
+        if (!this._storageWarningScheduled) {
+          this._storageWarningScheduled = true;
+          doc.addEventListener('DOMContentLoaded', () => this._showStorageWarning(), { once: true });
+        }
+        return;
+      }
+      this._storageWarningShown = true;
+      const banner = doc.createElement('section');
+      banner.setAttribute('role', 'alert');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;padding:12px 16px;background:#290c14;color:#fff;font:14px/1.5 system-ui,sans-serif;border-bottom:2px solid #ff6b86';
+      const message = doc.createElement('span');
+      message.textContent = 'NEXUS OS: no se pudo acceder al sistema de archivos guardado. Los cambios de esta sesión NO se conservarán. No borres los datos del navegador.';
+      banner.appendChild(message);
+      if (this._unreadableRaw !== null) {
+        const button = doc.createElement('button');
+        button.type = 'button';
+        button.textContent = 'Exportar copia original';
+        button.style.cssText = 'margin-left:12px;padding:6px 10px;background:#fff;color:#290c14;border:2px solid #fff;border-radius:4px;cursor:pointer';
+        button.addEventListener('click', () => {
+          const url = global.URL.createObjectURL(new Blob([this._unreadableRaw], { type: 'application/json' }));
+          const link = doc.createElement('a');
+          link.href = url;
+          link.download = 'nexus-filesystem-recovery-' + Date.now() + '.json';
+          doc.body.appendChild(link);
+          try { link.click(); } finally {
+            link.remove();
+            global.setTimeout(() => global.URL.revokeObjectURL(url), 60000);
+          }
+        });
+        banner.appendChild(button);
+      }
+      doc.body.prepend(banner);
     }
 
     // ==========================================================

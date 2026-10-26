@@ -945,5 +945,3 @@ NexusEventBus.resetInstance = function () {
   _instance = null;
 };
 
-export default NexusEventBus;
-export { NexusEventBus };

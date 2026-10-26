@@ -1794,9 +1794,6 @@
       // Setup start menu power buttons
       this._setupPowerButtons();
 
-      // Show workspace switcher on mouse near top
-      this._setupWorkspaceHover();
-
       console.log('[NEXUS Kernel] Initialized. Apps:', APP_REGISTRY.length);
     }
 

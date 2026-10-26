@@ -20,13 +20,6 @@ jobs:
         run: |
           test -f index.html || test -f public/index.html || test -f docs/index.html \
             || { echo "No hay index.html en raiz, public/ ni docs/"; exit 1; }
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Real file create/rename/move behavior
-        run: |
-          node --check js/os/filesystem.js
-          node --test tests/filesystem.test.mjs
       - name: Todos los JSON parsean
         run: |
           fail=0
@@ -35,3 +28,13 @@ jobs:
               || { echo "JSON invalido: $f"; fail=1; }
           done < <(find . -name '*.json' -not -path './.git/*' -not -path './node_modules/*')
           exit $fail
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test real local data backups
+        run: node --test tests/backup-tool.test.cjs
+      - name: Protect virtual filesystem against data loss
+        run: |
+          node --check js/os/filesystem.js
+          node --test tests/filesystem.test.mjs

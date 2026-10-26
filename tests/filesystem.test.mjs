@@ -4,11 +4,11 @@ import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 
 const source = readFileSync(new URL("../js/os/filesystem.js", import.meta.url), "utf8");
-function createFileSystem() {
-  const values = new Map();
+function createFileSystem(options = {}) {
+  const values = new Map(options.raw === undefined ? [] : [['nexus_filesystem', options.raw]]);
   const localStorage = {
-    setItem: (key,value) => values.set(key, value),
-    getItem: (key) => values.get(key) ?? null,
+    setItem: (key,value) => { if (options.blockWrite) throw new Error('Storage denied'); values.set(key, value); },
+    getItem: (key) => { if (options.blockRead) throw new Error('Storage denied'); return values.get(key) ?? null; },
   };
   const window = {};
   runInNewContext(source, { window, localStorage, Blob, console: { log(){}, warn(){} } });
@@ -57,4 +57,32 @@ test("successful rename preserves document content and its new path", () => {
   assert.equal(fs.resolve("/Documents/project-notes-2026.txt").content,"Working file");
   assert.equal(fs.resolve("/Documents/project.txt"),null);
   assert.equal(fs.move("/Documents/project-notes-2026.txt","/Documents/project-notes-2026.txt"),true);
+});
+
+test("corrupt saved JSON is preserved byte-for-byte, even after writes", () => {
+  const raw = '{"root":';
+  const { fs, values } = createFileSystem({ raw });
+  assert.equal(fs._storageReadOnly, true);
+  assert.ok(fs.resolve('/Desktop/welcome.txt'));
+  assert.equal(fs.write('/Desktop/welcome.txt', 'temporary only'), true);
+  assert.equal(values.get('nexus_filesystem'), raw);
+});
+test("invalid saved root is never replaced by default sample files", () => {
+  const raw = JSON.stringify({ root: { name: '', type: 'text', children: {} }, trash: [] });
+  const { fs, values } = createFileSystem({ raw });
+  assert.equal(fs._storageReadOnly, true);
+  assert.equal(values.get('nexus_filesystem'), raw);
+});
+test("blocked browser storage boots temporary read-only persistence without crashing", () => {
+  const { fs } = createFileSystem({ blockRead: true, blockWrite: true });
+  assert.equal(fs._storageReadOnly, true);
+  assert.ok(fs.resolve('/Documents/notes.txt'));
+});
+test("rename persists across a new filesystem session", () => {
+  const first = createFileSystem();
+  const file = first.fs.create('/Documents', 'persist.txt', 'text', 'Important');
+  file.rename('persist-renamed.txt');
+  const second = createFileSystem({ raw: first.values.get('nexus_filesystem') });
+  assert.equal(second.fs.resolve('/Documents/persist-renamed.txt').content, 'Important');
+  assert.equal(second.fs.resolve('/Documents/persist.txt'), null);
 });

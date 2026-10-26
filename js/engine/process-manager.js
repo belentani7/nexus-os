@@ -851,5 +851,3 @@ class ProcessManager {
   }
 }
 
-export default ProcessManager;
-export { ProcessManager, Process, ProcessState, Priority };
