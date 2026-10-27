@@ -86,3 +86,24 @@ test("rename persists across a new filesystem session", () => {
   assert.equal(second.fs.resolve('/Documents/persist-renamed.txt').content, 'Important');
   assert.equal(second.fs.resolve('/Documents/persist.txt'), null);
 });
+
+test("reserved property filenames survive JSON persistence and reload", () => {
+  const { fs, values } = createFileSystem();
+  assert.ok(fs.create('/Documents', '__proto__', 'text', 'critical-data'));
+  assert.ok(fs.create('/Documents', 'constructor', 'text', 'also-critical'));
+  const saved = JSON.parse(values.get('nexus_filesystem'));
+  assert.ok(Object.prototype.hasOwnProperty.call(saved.root.children.Documents.children, '__proto__'));
+  const next = createFileSystem({ raw: values.get('nexus_filesystem') }).fs;
+  assert.equal(next.resolve('/Documents/__proto__').content, 'critical-data');
+  assert.equal(next.resolve('/Documents/constructor').content, 'also-critical');
+});
+
+test("nested reserved names survive copy and serialization", () => {
+  const { fs, values } = createFileSystem();
+  assert.ok(fs.mkdir('/Documents', '__proto__'));
+  assert.ok(fs.create('/Documents/__proto__', 'note.txt', 'text', 'sensitive'));
+  assert.ok(fs.copy('/Documents/__proto__', '/Desktop', 'constructor'));
+  const next = createFileSystem({ raw: values.get('nexus_filesystem') }).fs;
+  assert.equal(next.resolve('/Documents/__proto__/note.txt').content, 'sensitive');
+  assert.equal(next.resolve('/Desktop/constructor/note.txt').content, 'sensitive');
+});

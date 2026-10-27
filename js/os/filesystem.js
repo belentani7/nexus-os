@@ -202,7 +202,8 @@
           size: this.metadata.size,
           permissions: { ...this.metadata.permissions },
         },
-        children: {},
+        // Preserve filenames like "__proto__" in JSON; a plain object drops them.
+        children: Object.create(null),
       };
 
       if (this.isFolder) {
