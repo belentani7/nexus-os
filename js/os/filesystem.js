@@ -8,6 +8,14 @@
 
 (function (global) {
   'use strict';
+  // Names are single virtual path segments; disallow ambiguous separators and
+  // control bytes before touching parent maps or persisted user files.
+  function validNodeName(name) {
+    return typeof name === 'string' && name.length > 0 && name.length <= 120 &&
+      name.trim() === name && name !== '.' && name !== '..' &&
+      !/[\\/\u0000-\u001f\u007f]/.test(name);
+  }
+
 
   // ============================================================
   // SECTION 1: FILE SYSTEM NODE — Base class for files/folders
@@ -156,19 +164,25 @@
      * @param {string} newName
      */
     rename(newName) {
-      if (!newName || !newName.trim()) {
-        throw new Error('Name cannot be empty');
+      if (!validNodeName(newName)) {
+        throw new Error('Invalid filename');
+      }
+      if (newName === this.name) return;
+      if (this.parent && this.parent.hasChild(newName)) {
+        throw new Error('A file or folder with this name already exists');
       }
 
       const oldName = this.name;
-      this.name = newName.trim();
+      // Mutate only after validating: a failed rename must never orphan
+      // another document or drop it from the parent map.
+      this.name = newName;
       this.metadata.modified = new Date();
-
-      // Update parent's children map
       if (this.parent) {
         this.parent.children.delete(oldName);
         this.parent.children.set(this.name, this);
         this.parent.metadata.modified = new Date();
+        // A rename must survive a reload just like move() and write().
+        if (global.NexusFS) global.NexusFS._save();
       }
     }
 
@@ -188,7 +202,8 @@
           size: this.metadata.size,
           permissions: { ...this.metadata.permissions },
         },
-        children: {},
+        // Preserve filenames like "__proto__" in JSON; a plain object drops them.
+        children: Object.create(null),
       };
 
       if (this.isFolder) {
@@ -251,6 +266,10 @@
 
       /** @type {number} Max localStorage size (bytes) */
       this._maxStorageSize = 5 * 1024 * 1024; // 5MB
+      this._storageReadOnly = false;
+      this._unreadableRaw = null;
+      this._storageWarningShown = false;
+      this._storageWarningScheduled = false;
     }
 
     /**
@@ -263,6 +282,7 @@
         this._createDefaultStructure();
       }
 
+      if (this._storageReadOnly) this._showStorageWarning();
       console.log('[Filesystem] Initialized. Root children:', this.root.childCount);
     }
 
@@ -350,6 +370,10 @@
         return null;
       }
 
+      if (!validNodeName(name)) {
+        console.warn('[FS] Invalid single-segment file or folder name');
+        return null;
+      }
       if (parent.hasChild(name)) {
         console.warn(`[FS] "${name}" already exists in ${parentPath}`);
         return null;
@@ -403,10 +427,22 @@
         return false;
       }
 
+      // A quota/storage failure must not be reported as a saved edit.
+      // Preserve the temporary-session behavior when storage was already
+      // unreadable at startup (the user sees the persistence warning).
+      const wasReadOnly = this._storageReadOnly;
+      const previousContent = node.content;
+      const previousSize = node.metadata.size;
+      const previousModified = node.metadata.modified;
       node.content = content;
       node.metadata.size = new Blob([content]).size;
       node.metadata.modified = new Date();
-      this._save();
+      if (!this._save() && !wasReadOnly) {
+        node.content = previousContent;
+        node.metadata.size = previousSize;
+        node.metadata.modified = previousModified;
+        return false;
+      }
       this._emit('write', node);
       return true;
     }
@@ -420,19 +456,27 @@
       const node = this.resolve(path);
       if (!node || node === this.root) return false;
 
-      // Move to trash
+      // Roll back both the tree and the trash if the browser rejects
+      // persistence; otherwise the UI would falsely report a saved deletion.
+      const wasReadOnly = this._storageReadOnly;
+      const parent = node.parent;
+      const previousParentModified = parent && parent.metadata.modified;
       this._trash.push({
         node,
         originalPath: node.path,
         deletedAt: new Date(),
       });
 
-      // Remove from parent
-      if (node.parent) {
-        node.parent.removeChild(node.name);
-      }
+      if (parent) parent.removeChild(node.name);
 
-      this._save();
+      if (!this._save() && !wasReadOnly) {
+        this._trash.pop();
+        if (parent) {
+          parent.addChild(node);
+          parent.metadata.modified = previousParentModified;
+        }
+        return false;
+      }
       this._emit('delete', node, path);
       return true;
     }
@@ -466,12 +510,17 @@
       if (!source || source === this.root) return false;
 
       // Parse destination
+      if (typeof destPath !== 'string') return false;
       const destParts = destPath.split('/').filter(p => p.length > 0);
       const newName = destParts.pop();
+      if (!validNodeName(newName)) return false;
       const destParentPath = '/' + destParts.join('/');
 
       const destParent = this.resolve(destParentPath || '/');
       if (!destParent || !destParent.isFolder) return false;
+      if (destParent === source.parent && newName === source.name) return true;
+      // Never detach the source until the destination is guaranteed vacant.
+      if (destParent.hasChild(newName)) return false;
 
       // Prevent moving into self
       let check = destParent;
@@ -514,6 +563,7 @@
       clone.id = 'fs_' + Math.random().toString(36).substr(2, 9);
 
       if (newName) {
+        if (!validNodeName(newName) || destParent.hasChild(newName)) return null;
         clone.name = newName;
       } else {
         // Auto-generate unique name
@@ -699,23 +749,23 @@
      * @returns {boolean}
      */
     restoreFromTrash(index) {
-      if (index < 0 || index >= this._trash.length) return false;
+      if (!Number.isInteger(index) || index < 0 || index >= this._trash.length) return false;
 
       const item = this._trash[index];
       const originalParent = item.originalPath.split('/').slice(0, -1).join('/') || '/';
-      const parent = this.resolve(originalParent);
+      const originalLocation = this.resolve(originalParent);
+      // The original folder may have been removed since deletion. A fallback
+      // to root must enforce the same collision policy as a normal restore.
+      const destination = originalLocation && originalLocation.isFolder
+        ? originalLocation : this.root;
+      if (!destination || !destination.isFolder) return false;
 
-      if (!parent || !parent.isFolder) {
-        // Original location gone — restore to root
-        this.root.addChild(item.node);
-      } else {
-        // Check for name conflict
-        if (parent.hasChild(item.node.name)) {
-          item.node.name = this._uniqueName(parent, item.node.name);
-        }
-        parent.addChild(item.node);
-      }
+      const restoredName = destination.hasChild(item.node.name)
+        ? this._uniqueName(destination, item.node.name) : item.node.name;
+      if (!validNodeName(restoredName)) return false;
 
+      item.node.name = restoredName;
+      destination.addChild(item.node);
       this._trash.splice(index, 1);
       this._save();
       this._emit('restore', item.node);
@@ -763,43 +813,96 @@
      * @private
      */
     _save() {
+      // Never overwrite an unreadable user snapshot with demo defaults.
+      if (this._storageReadOnly) return false;
       try {
         const data = JSON.stringify(this.serialize());
-        if (data.length > this._maxStorageSize) {
-          console.warn('[FS] Data exceeds storage limit, skipping save');
-          return;
+        if (new Blob([data]).size > this._maxStorageSize) {
+          throw new Error('Filesystem exceeds the browser storage limit');
         }
         localStorage.setItem(this._storageKey, data);
+        return true;
       } catch (e) {
-        console.warn('[FS] Failed to save to localStorage:', e);
+        this._storageReadOnly = true;
+        console.warn('[FS] Saving disabled to protect existing user data:', e);
+        this._showStorageWarning();
+        return false;
       }
     }
 
     /**
-     * Load from localStorage
-     * @returns {boolean} True if loaded successfully
-     * @private
+     * Load saved data. If it is corrupt or browser storage is unavailable,
+     * run a temporary filesystem without replacing the original value.
      */
     _load() {
+      let raw = null;
       try {
-        const raw = localStorage.getItem(this._storageKey);
-        if (!raw) return false;
-
+        raw = localStorage.getItem(this._storageKey);
+        if (raw === null) return false;
         const data = JSON.parse(raw);
-        this.root = FSNode.deserialize(data.root, null);
-
-        // Restore trash
-        this._trash = (data.trash || []).map(t => ({
+        if (!data || typeof data !== 'object' || !data.root ||
+            data.root.type !== 'folder' || !data.root.children ||
+            typeof data.root.children !== 'object' || Array.isArray(data.root.children) ||
+            (data.trash !== undefined && !Array.isArray(data.trash))) {
+          throw new Error('Invalid filesystem snapshot');
+        }
+        const root = FSNode.deserialize(data.root, null);
+        const trash = (data.trash || []).map(t => ({
           node: FSNode.deserialize(t.node, null),
           originalPath: t.originalPath,
           deletedAt: new Date(t.deletedAt),
         }));
-
+        this.root = root;
+        this._trash = trash;
         return true;
       } catch (e) {
-        console.warn('[FS] Failed to load from localStorage:', e);
+        this._storageReadOnly = true;
+        this._unreadableRaw = raw;
+        console.warn('[FS] Stored filesystem could not be loaded; original preserved:', e);
         return false;
       }
+    }
+
+    /**
+     * Accessible warning, with an opt-in export of the original damaged data.
+     * Never include the user's saved file contents in console logs or markup.
+     */
+    _showStorageWarning() {
+      const doc = global.document;
+      if (!doc || this._storageWarningShown) return;
+      if (!doc.body) {
+        if (!this._storageWarningScheduled) {
+          this._storageWarningScheduled = true;
+          doc.addEventListener('DOMContentLoaded', () => this._showStorageWarning(), { once: true });
+        }
+        return;
+      }
+      this._storageWarningShown = true;
+      const banner = doc.createElement('section');
+      banner.setAttribute('role', 'alert');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;padding:12px 16px;background:#290c14;color:#fff;font:14px/1.5 system-ui,sans-serif;border-bottom:2px solid #ff6b86';
+      const message = doc.createElement('span');
+      message.textContent = 'NEXUS OS: no se pudo acceder al sistema de archivos guardado. Los cambios de esta sesión NO se conservarán. No borres los datos del navegador.';
+      banner.appendChild(message);
+      if (this._unreadableRaw !== null) {
+        const button = doc.createElement('button');
+        button.type = 'button';
+        button.textContent = 'Exportar copia original';
+        button.style.cssText = 'margin-left:12px;padding:6px 10px;background:#fff;color:#290c14;border:2px solid #fff;border-radius:4px;cursor:pointer';
+        button.addEventListener('click', () => {
+          const url = global.URL.createObjectURL(new Blob([this._unreadableRaw], { type: 'application/json' }));
+          const link = doc.createElement('a');
+          link.href = url;
+          link.download = 'nexus-filesystem-recovery-' + Date.now() + '.json';
+          doc.body.appendChild(link);
+          try { link.click(); } finally {
+            link.remove();
+            global.setTimeout(() => global.URL.revokeObjectURL(url), 60000);
+          }
+        });
+        banner.appendChild(button);
+      }
+      doc.body.prepend(banner);
     }
 
     // ==========================================================

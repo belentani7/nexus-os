@@ -34,3 +34,7 @@ jobs:
           node-version: '22'
       - name: Test real local data backups
         run: node --test tests/backup-tool.test.cjs
+      - name: Protect virtual filesystem against data loss
+        run: |
+          node --check js/os/filesystem.js
+          node --test tests/filesystem.test.mjs
