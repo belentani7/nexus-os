@@ -134,3 +134,31 @@ test("invalid trash indices cannot restore or mutate entries", () => {
   assert.equal(fs.restoreFromTrash(0), true);
   assert.equal(fs.read('/Documents/index.txt'), 'valuable');
 });
+
+test("failed storage write preserves the previous document and reports failure", () => {
+  const options = {};
+  const { fs, values } = createFileSystem(options);
+  assert.ok(fs.create('/Documents', 'quota.txt', 'text', 'precious'));
+  const before = values.get('nexus_filesystem');
+  options.blockWrite = true;
+  assert.equal(fs.write('/Documents/quota.txt', 'unsaved'), false);
+  assert.equal(fs.read('/Documents/quota.txt'), 'precious');
+  assert.equal(values.get('nexus_filesystem'), before);
+  assert.equal(fs._storageReadOnly, true);
+  assert.equal(createFileSystem({ raw: before }).fs.read('/Documents/quota.txt'), 'precious');
+});
+
+test("failed storage deletion restores the tree and does not fill trash", () => {
+  const options = {};
+  const { fs, values } = createFileSystem(options);
+  assert.ok(fs.create('/Documents', 'quota-delete.txt', 'text', 'valuable'));
+  const before = values.get('nexus_filesystem');
+  const previousModified = fs.resolve('/Documents').metadata.modified.getTime();
+  options.blockWrite = true;
+  assert.equal(fs.delete('/Documents/quota-delete.txt'), false);
+  assert.equal(fs.read('/Documents/quota-delete.txt'), 'valuable');
+  assert.equal(fs.trashCount, 0);
+  assert.equal(fs.resolve('/Documents').metadata.modified.getTime(), previousModified);
+  assert.equal(values.get('nexus_filesystem'), before);
+  assert.equal(createFileSystem({ raw: before }).fs.read('/Documents/quota-delete.txt'), 'valuable');
+});

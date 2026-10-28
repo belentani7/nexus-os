@@ -427,10 +427,22 @@
         return false;
       }
 
+      // A quota/storage failure must not be reported as a saved edit.
+      // Preserve the temporary-session behavior when storage was already
+      // unreadable at startup (the user sees the persistence warning).
+      const wasReadOnly = this._storageReadOnly;
+      const previousContent = node.content;
+      const previousSize = node.metadata.size;
+      const previousModified = node.metadata.modified;
       node.content = content;
       node.metadata.size = new Blob([content]).size;
       node.metadata.modified = new Date();
-      this._save();
+      if (!this._save() && !wasReadOnly) {
+        node.content = previousContent;
+        node.metadata.size = previousSize;
+        node.metadata.modified = previousModified;
+        return false;
+      }
       this._emit('write', node);
       return true;
     }
@@ -444,19 +456,27 @@
       const node = this.resolve(path);
       if (!node || node === this.root) return false;
 
-      // Move to trash
+      // Roll back both the tree and the trash if the browser rejects
+      // persistence; otherwise the UI would falsely report a saved deletion.
+      const wasReadOnly = this._storageReadOnly;
+      const parent = node.parent;
+      const previousParentModified = parent && parent.metadata.modified;
       this._trash.push({
         node,
         originalPath: node.path,
         deletedAt: new Date(),
       });
 
-      // Remove from parent
-      if (node.parent) {
-        node.parent.removeChild(node.name);
-      }
+      if (parent) parent.removeChild(node.name);
 
-      this._save();
+      if (!this._save() && !wasReadOnly) {
+        this._trash.pop();
+        if (parent) {
+          parent.addChild(node);
+          parent.metadata.modified = previousParentModified;
+        }
+        return false;
+      }
       this._emit('delete', node, path);
       return true;
     }
