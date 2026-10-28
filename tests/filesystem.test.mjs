@@ -107,3 +107,30 @@ test("nested reserved names survive copy and serialization", () => {
   assert.equal(next.resolve('/Documents/__proto__/note.txt').content, 'sensitive');
   assert.equal(next.resolve('/Desktop/constructor/note.txt').content, 'sensitive');
 });
+
+test("restoring to root never overwrites or throws on a name collision", () => {
+  const {fs, values} = createFileSystem();
+  assert.ok(fs.create('/Documents', 'recovered.txt', 'text', 'original data'));
+  assert.equal(fs.delete('/Documents/recovered.txt'), true);
+  assert.equal(fs.forceDelete('/Documents'), true);
+  assert.ok(fs.create('/', 'recovered.txt', 'text', 'keep existing'));
+  assert.equal(fs.restoreFromTrash(0), true);
+  assert.equal(fs.read('/recovered.txt'), 'keep existing');
+  assert.equal(fs.read('/recovered (1).txt'), 'original data');
+  assert.equal(fs.trashCount, 0);
+  const next = createFileSystem({raw: values.get('nexus_filesystem')}).fs;
+  assert.equal(next.read('/recovered.txt'), 'keep existing');
+  assert.equal(next.read('/recovered (1).txt'), 'original data');
+});
+
+test("invalid trash indices cannot restore or mutate entries", () => {
+  const {fs} = createFileSystem();
+  assert.ok(fs.create('/Documents', 'index.txt', 'text', 'valuable'));
+  assert.equal(fs.delete('/Documents/index.txt'), true);
+  for (const index of [NaN, Infinity, 0.5, '0', -1, 1]) {
+    assert.equal(fs.restoreFromTrash(index), false);
+  }
+  assert.equal(fs.trashCount, 1);
+  assert.equal(fs.restoreFromTrash(0), true);
+  assert.equal(fs.read('/Documents/index.txt'), 'valuable');
+});

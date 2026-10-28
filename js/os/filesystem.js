@@ -729,23 +729,23 @@
      * @returns {boolean}
      */
     restoreFromTrash(index) {
-      if (index < 0 || index >= this._trash.length) return false;
+      if (!Number.isInteger(index) || index < 0 || index >= this._trash.length) return false;
 
       const item = this._trash[index];
       const originalParent = item.originalPath.split('/').slice(0, -1).join('/') || '/';
-      const parent = this.resolve(originalParent);
+      const originalLocation = this.resolve(originalParent);
+      // The original folder may have been removed since deletion. A fallback
+      // to root must enforce the same collision policy as a normal restore.
+      const destination = originalLocation && originalLocation.isFolder
+        ? originalLocation : this.root;
+      if (!destination || !destination.isFolder) return false;
 
-      if (!parent || !parent.isFolder) {
-        // Original location gone — restore to root
-        this.root.addChild(item.node);
-      } else {
-        // Check for name conflict
-        if (parent.hasChild(item.node.name)) {
-          item.node.name = this._uniqueName(parent, item.node.name);
-        }
-        parent.addChild(item.node);
-      }
+      const restoredName = destination.hasChild(item.node.name)
+        ? this._uniqueName(destination, item.node.name) : item.node.name;
+      if (!validNodeName(restoredName)) return false;
 
+      item.node.name = restoredName;
+      destination.addChild(item.node);
       this._trash.splice(index, 1);
       this._save();
       this._emit('restore', item.node);
