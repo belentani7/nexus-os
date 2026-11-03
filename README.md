@@ -199,3 +199,16 @@ Created by **Qwen AI** with **Pedro Belentani**'s creative direction and guidanc
 <p align="center">
   <strong>NEXUS OS v1.0.0</strong> — Neural Execution Unified System
 </p>
+---
+
+## Ficha del proyecto
+
+| Campo | Valor |
+|---|---|
+| Autor | Belentani / NOIACORE |
+| Época de desarrollo | 2026 |
+| Contacto | [belentani7studio@proton.me](mailto:belentani7studio@proton.me) |
+| Código | https://github.com/belentani7/nexus-os |
+| Demo desplegada | https://belentani7.github.io/nexus-os/ |
+
+Quality baseline: CI + Dependabot + CodeQL + reglas de agentes por [premium-factory](https://github.com/belentani7/premium-factory-api).
