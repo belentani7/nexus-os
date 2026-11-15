@@ -69,3 +69,6 @@ secrets.json
 .npmrc
 .pypirc
 .user_env
+
+.vercel
+.env*
