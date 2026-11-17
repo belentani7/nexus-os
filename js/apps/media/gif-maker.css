@@ -43,3 +43,19 @@
 .ngm-status{font-size:11px;color:#666;margin-top:4px;text-align:center}
 .ngm-drop-overlay{position:absolute;inset:0;background:rgba(255,0,60,.15);border:3px dashed #ff003c;display:none;align-items:center;justify-content:center;z-index:20;font-size:18px;color:#ff003c;backdrop-filter:blur(8px)}
 .ngm-drop-overlay.active{display:flex}
+
+/* --- mejora universal: movimiento reducido --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- mejora universal: foco visible --- */
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}

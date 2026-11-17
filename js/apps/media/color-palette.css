@@ -40,3 +40,19 @@
 .ncp-format-btn:hover{border-color:rgba(255,0,60,.3)}
 .ncp-format-btn.active{background:rgba(255,0,60,.15);color:#ff003c;border-color:#ff003c}
 .ncp-contrast-info{font-size:11px;color:#888;padding:8px;background:rgba(255,255,255,.02);border-radius:6px}
+
+/* --- mejora universal: movimiento reducido --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- mejora universal: foco visible --- */
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}

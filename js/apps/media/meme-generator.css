@@ -32,3 +32,19 @@
 .nmg-template-btn:hover{background:rgba(255,0,60,.1);color:#ff003c;border-color:rgba(255,0,60,.3)}
 .nmg-select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,0,60,.15);color:#ccc;padding:6px 8px;border-radius:6px;font-size:12px;outline:none;cursor:pointer;margin-bottom:8px}
 .nmg-select option{background:#1a1a2e}
+
+/* --- mejora universal: movimiento reducido --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- mejora universal: foco visible --- */
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}

@@ -42,3 +42,19 @@
 .nse-layer-del:hover{color:#ff003c}
 .nse-no-fill{display:flex;align-items:center;gap:6px;font-size:11px;color:#888;cursor:pointer}
 .nse-no-fill input{accent-color:#ff003c}
+
+/* --- mejora universal: movimiento reducido --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- mejora universal: foco visible --- */
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}

@@ -25,3 +25,19 @@
 .nqr-btn.secondary:hover{background:rgba(255,0,60,.1);color:#ff003c}
 .nqr-btn-row{display:flex;gap:8px}
 .nqr-btn-row .nqr-btn{flex:1}
+
+/* --- mejora universal: movimiento reducido --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- mejora universal: foco visible --- */
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}

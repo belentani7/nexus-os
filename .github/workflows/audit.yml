@@ -1,3 +1,9 @@
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 name: Audit
 
 # Gate de higiene del repositorio. Deliberadamente simple y verde por

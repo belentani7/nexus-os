@@ -39,3 +39,19 @@
 .npa-size-row{display:flex;align-items:center;gap:6px}
 .npa-size-input{width:50px;background:rgba(255,255,255,.05);border:1px solid rgba(255,0,60,.15);color:#ccc;padding:4px 6px;border-radius:4px;font-size:12px;outline:none;text-align:center}
 .npa-size-x{color:#555;font-size:12px}
+
+/* --- mejora universal: movimiento reducido --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- mejora universal: foco visible --- */
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
