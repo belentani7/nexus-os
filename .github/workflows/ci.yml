@@ -20,6 +20,7 @@ jobs:
   static:
     name: Integridad del sitio estatico
     runs-on: ubuntu-latest
+      timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - name: Existe punto de entrada HTML
